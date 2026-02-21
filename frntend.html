@@ -1,0 +1,366 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Quiz App</title>
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+<style>
+/* ---------- GLOBAL STYLE ---------- */
+
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+    font-family: "Segoe UI", sans-serif;
+}
+
+body {
+    background: linear-gradient(135deg, #667eea, #764ba2);
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    height: 100vh;
+    color: #333;
+}
+
+/* ---------- CONTAINERS ---------- */
+
+.container {
+    background: white;
+    width: 95%;
+    max-width: 420px;
+    padding: 25px;
+    border-radius: 15px;
+    box-shadow: 0 15px 40px rgba(0,0,0,0.2);
+    animation: fadeIn 0.4s ease;
+}
+
+.hidden { display: none; }
+
+@keyframes fadeIn {
+    from { opacity: 0; transform: translateY(10px); }
+    to { opacity: 1; transform: translateY(0); }
+}
+
+/* ---------- LOGIN ---------- */
+
+h2 {
+    text-align: center;
+    margin-bottom: 20px;
+}
+
+input {
+    width: 100%;
+    padding: 12px;
+    margin: 10px 0;
+    border-radius: 8px;
+    border: 1px solid #ddd;
+    font-size: 15px;
+}
+
+button {
+    width: 100%;
+    padding: 12px;
+    border: none;
+    border-radius: 8px;
+    background: #667eea;
+    color: white;
+    font-size: 16px;
+    cursor: pointer;
+    margin-top: 10px;
+    transition: 0.3s;
+}
+
+button:hover {
+    background: #5563d6;
+}
+
+.error {
+    color: red;
+    font-size: 14px;
+    text-align: center;
+    margin-top: 10px;
+}
+
+/* ---------- QUIZ ---------- */
+
+.quiz-header {
+    display: flex;
+    justify-content: space-between;
+    margin-bottom: 15px;
+}
+
+.timer {
+    font-weight: bold;
+    color: #667eea;
+}
+
+.timer.low {
+    color: red;
+    animation: pulse 0.5s infinite;
+}
+
+@keyframes pulse {
+    0% { transform: scale(1); }
+    50% { transform: scale(1.1); }
+    100% { transform: scale(1); }
+}
+
+.question {
+    font-size: 18px;
+    margin-bottom: 15px;
+}
+
+.option {
+    background: #f5f5f5;
+    border: none;
+    padding: 12px;
+    margin: 8px 0;
+    border-radius: 8px;
+    cursor: pointer;
+    transition: 0.3s;
+}
+
+.option:hover {
+    background: #e0e0e0;
+}
+
+.option.selected {
+    background: #667eea;
+    color: white;
+}
+
+/* ---------- RESULT ---------- */
+
+.result-score {
+    font-size: 22px;
+    text-align: center;
+    margin: 15px 0;
+}
+
+/* ---------- DASHBOARD ---------- */
+
+.dashboard {
+    max-width: 600px;
+}
+
+.card {
+    background: #f5f5f5;
+    padding: 15px;
+    margin: 10px 0;
+    border-radius: 10px;
+}
+
+.leaderboard-item {
+    display: flex;
+    justify-content: space-between;
+    padding: 8px 0;
+    border-bottom: 1px solid #ddd;
+}
+
+.warning {
+    background: rgba(255,0,0,0.1);
+    color: red;
+    padding: 10px;
+    border-radius: 8px;
+    margin-bottom: 10px;
+    text-align: center;
+}
+</style>
+</head>
+
+<body>
+
+<!-- ✅ LOGIN PAGE -->
+<div class="container" id="loginPage">
+    <h2>Quiz Login</h2>
+    <input type="text" id="username" placeholder="Username">
+    <input type="password" id="password" placeholder="Password">
+    <button onclick="login()">Login</button>
+    <div class="error" id="loginError"></div>
+</div>
+
+<!-- ✅ QUIZ PAGE -->
+<div class="container hidden" id="quizPage">
+    <div class="warning hidden" id="tabWarning">
+        Tab switch detected! Quiz will be submitted.
+    </div>
+
+    <div class="quiz-header">
+        <div>Question <span id="qNumber">1</span></div>
+        <div class="timer">⏳ <span id="time">10</span>s</div>
+    </div>
+
+    <div class="question" id="questionText"></div>
+    <div id="optionsContainer"></div>
+
+    <button onclick="nextQuestion()">Next</button>
+</div>
+
+<!-- ✅ RESULT PAGE -->
+<div class="container hidden" id="resultPage">
+    <h2>Quiz Completed 🎉</h2>
+    <div class="result-score">
+        Your Score: <span id="finalScore"></span>
+    </div>
+    <button onclick="showDashboard()">Go to Dashboard</button>
+</div>
+
+<!-- ✅ DASHBOARD -->
+<div class="container hidden dashboard" id="dashboardPage">
+    <h2>Live Dashboard</h2>
+
+    <div class="card">Participants: <strong>24</strong></div>
+    <div class="card">Quiz Status: <strong>Active</strong></div>
+
+    <div class="card">
+        <h3>Leaderboard</h3>
+        <div class="leaderboard-item"><span>Harini</span><span>9</span></div>
+        <div class="leaderboard-item"><span>Rahul</span><span>8</span></div>
+        <div class="leaderboard-item"><span>Anu</span><span>7</span></div>
+    </div>
+</div>
+
+<script>
+/* ---------- QUIZ DATA ---------- */
+
+const questions = [
+    {
+        question: "Which language runs in the browser?",
+        options: ["Java", "C", "JavaScript", "Python"],
+        answer: 2
+    },
+    {
+        question: "What does CSS stand for?",
+        options: ["Central Style Sheet", "Cascading Style Sheet", "Computer Style Sheet", "Creative Style System"],
+        answer: 1
+    },
+    {
+        question: "Which is not a programming language?",
+        options: ["HTML", "Python", "Java", "C++"],
+        answer: 0
+    }
+];
+
+let currentQuestion = 0;
+let selectedOption = null;
+let score = 0;
+let timer;
+let timeLeft = 10;
+
+/* ---------- LOGIN ---------- */
+
+function login() {
+    const user = document.getElementById("username").value.trim();
+    const pass = document.getElementById("password").value.trim();
+
+    if (!user || !pass) {
+        document.getElementById("loginError").innerText = "Please fill all fields";
+        return;
+    }
+
+    document.getElementById("loginPage").classList.add("hidden");
+    document.getElementById("quizPage").classList.remove("hidden");
+
+    loadQuestion();
+}
+
+/* ---------- LOAD QUESTION ---------- */
+
+function loadQuestion() {
+    if (currentQuestion >= questions.length) {
+        finishQuiz();
+        return;
+    }
+
+    selectedOption = null;
+    timeLeft = 10;
+
+    document.getElementById("qNumber").innerText = currentQuestion + 1;
+    document.getElementById("questionText").innerText = questions[currentQuestion].question;
+
+    const optionsHTML = questions[currentQuestion].options.map((opt, index) =>
+        `<button class="option" onclick="selectOption(${index}, this)">${opt}</button>`
+    ).join("");
+
+    document.getElementById("optionsContainer").innerHTML = optionsHTML;
+
+    startTimer();
+}
+
+/* ---------- TIMER ---------- */
+
+function startTimer() {
+    clearInterval(timer);
+
+    timer = setInterval(() => {
+        timeLeft--;
+        const timerEl = document.querySelector(".timer");
+
+        document.getElementById("time").innerText = timeLeft;
+
+        if (timeLeft <= 3) {
+            timerEl.classList.add("low");
+        } else {
+            timerEl.classList.remove("low");
+        }
+
+        if (timeLeft <= 0) {
+            nextQuestion();
+        }
+    }, 1000);
+}
+
+/* ---------- OPTION SELECT ---------- */
+
+function selectOption(index, el) {
+    document.querySelectorAll(".option").forEach(btn => btn.classList.remove("selected"));
+    el.classList.add("selected");
+    selectedOption = index;
+}
+
+/* ---------- NEXT QUESTION ---------- */
+
+function nextQuestion() {
+    clearInterval(timer);
+
+    if (selectedOption === questions[currentQuestion].answer) {
+        score++;
+    }
+
+    currentQuestion++;
+    document.getElementById("quizPage").style.animation = "fadeIn 0.3s ease";
+    loadQuestion();
+}
+
+/* ---------- FINISH QUIZ ---------- */
+
+function finishQuiz() {
+    document.getElementById("quizPage").classList.add("hidden");
+    document.getElementById("resultPage").classList.remove("hidden");
+    document.getElementById("finalScore").innerText = score + " / " + questions.length;
+}
+
+/* ---------- DASHBOARD ---------- */
+
+function showDashboard() {
+    document.getElementById("resultPage").classList.add("hidden");
+    document.getElementById("dashboardPage").classList.remove("hidden");
+}
+
+/* ---------- TAB SWITCH DETECTION ---------- */
+
+document.addEventListener("visibilitychange", () => {
+    if (document.hidden) {
+        document.getElementById("tabWarning").classList.remove("hidden");
+
+        setTimeout(() => {
+            finishQuiz();
+        }, 1000);
+    }
+});
+</script>
+
+</body>
+</html>
